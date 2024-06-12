@@ -1,0 +1,340 @@
+Volume
+
+Empty Directory is reside inside the pods if pod get deleted/restarted your emptyDir alos get deleted 
+----------------------------------------------------------------------------------------------------------------------------------------
+Empty Directory(In single Pod) Sharing Only
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myvolumes-pod
+spec:
+  containers:
+  - image: centos
+    imagePullPolicy: IfNotPresent
+    name: myvolumes-container-1
+    command: ['sh', '-c', 'echo The Bench Container 1 is Running ; sleep 3600']
+    volumeMounts:
+    - mountPath: /demo1
+      name: demo-volume
+
+  - image: ubuntu  
+    imagePullPolicy: IfNotPresent
+    name: myvolumes-container-2
+    command: ['/bin/bash', '-c', 'echo The Bench Container 2 is Running ; sleep 3600']
+    volumeMounts:
+    - mountPath: /demo2
+      name: demo-volume
+
+  - image: alpine
+    imagePullPolicy: IfNotPresent
+    name: myvolumes-container-3
+    command: ['sh', '-c', 'echo The Bench Container 3 is Running ; sleep 3600']    
+    volumeMounts:
+    - mountPath: /demo3
+      name: demo-volume
+
+  volumes:
+  - name: demo-volume
+    emptyDir: {}
+
+----------------------------------------------------------------------------------------------------------------------------------------
+HostPath on worker node
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-vol-pod1
+spec:
+  containers:
+   - name: test-container
+     image: tomcat
+     volumeMounts:
+      - name: hostpath-volume
+        mountPath: /usr/local/tomcat/logs
+  volumes:
+   - name: hostpath-volume
+     hostPath:
+       path: /tmp/logs     	# directory location on host
+       type: Directory  	# this field is optional
+	   
+	   
+----------------------------------------------------------------------------------------------------------------------------------------
+Persistant Volume
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  storageClassName: standard
+  persistentVolumeReclaimPolicy: Recycle ## Retain / Delete
+  capacity:
+    storage: 1000Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /tmp/pvdata
+
+# Class: A PV can have a class, which is specified by setting the storageClassName attribute to the name of a StorageClass. A PV of a particular class can only be bound to PVCs requesting that class.
+# A PV with no storageClassName has no class and can only be bound to PVCs that request no particular class
+
+
+# Access modes
+   # ReadWriteOnce – the volume can be mounted as read-write by a single node ... RWO
+   # ReadOnlyMany – the volume can be mounted read-only by many nodes ... ROX
+   # ReadWriteMany – the volume can be mounted as read-write by many nodes ... RWX
+
+# The Retain reclaim policy allows for manual reclamation of the resource. When the PersistentVolumeClaim is deleted, the PersistentVolume still exists and the volume is considered "released". But it is not yet available for another claim bec ause the previous claimant's data remains on the volume
+
+kubectl get pv
+
+----------------------------------------------------------------------------------------------------------------------------------------
+Persistant Volume Claim
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+	  
+kubectl get pvc
+
+----------------------------------------------------------------------------------------------------------------------------------------
+PVC Pod 
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-pod
+spec:
+  containers:
+   - name: myvolumes-container
+     image: tomcat:8.5
+     volumeMounts:
+      - name: pv
+        mountPath: "/usr/local/tomcat/logs"
+  volumes:
+   - name: pv
+     persistentVolumeClaim:
+       claimName: my-pvc
+	   
+	   
+	   
+----------------------------------------------------------------------------------------------------------------------------------------
+nfs/
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Step1: Create a Ubuntu Instance/server with 1CPU 2gb RAM & Login to Server
+--------------------------------------
+Step 2: Install NFS Kernel Server
+sudo apt-get update
+sudo apt install nfs-kernel-server
+--------------------------------------
+Step 3: Create the Export Directory
+The directory that we want to share with the client system is called an export directory. You can name it according to your choice; here, we are creating an export directory by the name of “sharedfolder” in our system’s mnt(mount) directory.
+
+Use the following command, by specifying a mount folder name according to your need, through the following command as root:
+
+sudo mkdir -p /mnt/sharedfolder
+As we want all clients to access the directory, we will remove restrictive permissions of the export folder through the following commands:
+
+sudo chown nobody:nogroup /mnt/sharedfolder
+sudo chmod 777 /mnt/sharedfolder
+
+Now all users from all groups on the client system will be able to access our “sharedfolder”.
+
+You can create as many sub-folders in the export folder as you want, for the client to access.
+--------------------------------------
+Step 4: Assign server access to client(s) through NFS export file
+After creating the export folder, we will need to provide the clients the permission to access the host server machine. This permission is defined through the exports file located in your system’s /etc folder. Please use the following command in order to open this file through the Nano editor:
+
+sudo vi /etc/exports
+
+Once you have opened the file, you can allow access to:
+
+A single client by adding the following line in the file:
+
+	/mnt/sharedfolder clientIP(rw,sync,no_subtree_check)
+
+Multiple clients by adding the following lines in the file:
+	/mnt/sharedfolder client1IP(rw,sync,no_subtree_check)
+	/mnt/sharedfolder client2IP(rw,sync,no_subtree_check)
+	
+Multiple clients, by specifying an entire subnet that the clients belong to:
+	/mnt/sharedfolder subnetIP/24(rw,sync,no_subtree_check)
+The permissions “rw,sync,no_subtree_check” permissions defined in this file mean that the client(s) can perform:
+
+rw: read and write operations
+sync: write any change to the disc before applying it
+no_subtree_check: prevent subtree checking
+--------------------------------------
+Step 5: Export the shared directory
+After making all the above configurations in the host system, now is the time to export the shared directory through the following command as sudo:
+
+sudo exportfs -a
+Finally, in order to make all the configurations take effect, restart the NFS Kernel server as follows:
+
+sudo systemctl restart nfs-kernel-server
+--------------------------------------
+Step 6: Open firewall for the client (s)
+Important this step may not be required if you using GCP / AWS Instances
+An important step is to verify that the server’s firewall is open to the clients so that they can access the shared content. The following command will configure the firewall to give access to clients through NFS:
+
+sudo ufw allow from 192.168.100/24 to any port nfs	
+
+Now when you check the status of your Ubuntu firewall through the following command, you will be able to view the Action status as “Allow” for the client’s IP.
+
+sudo ufw status
+--------------------------------------
+Step7: On all Kubernetes Nodes (Master & all Workers)
+Ensure to install nfs-common service
+
+sudo apt-get install -y nfs-common
+--------------------------------------
+OR setupNFSServer.sh
+--------------------------------------
+#!/bin/bash
+
+# Install NFS Kernel Server
+sudo apt-get update
+sudo apt-get install -y nfs-kernel-server
+
+# Create the Export Directory
+sudo mkdir -p /mnt/appdata
+
+# set all clients access to the directory
+sudo chown nobody:nogroup /mnt/appdata
+sudo chmod 777 /mnt/appdata
+
+echo ' '
+echo "nfs server setup complete"
+echo ' '
+echo "setting the client access"
+pe=`grep /mnt/appdata /etc/exports | wc -l`
+if [ $pe -eq 0 ]; then
+   echo "/mnt/appdata *(rw,sync,no_subtree_check,no_root_squash,insecure)" >> /etc/exports
+   sudo exportfs -rv
+   sudo showmount -e
+   sudo systemctl restart nfs-kernel-server
+else
+   echo "/mnt/appdata is already exported"
+fi
+
+#echo "you will need to  setup server access to client(s) through NFS export file /etc/exports"
+#echo ' '
+#echo "Ex: A single client by adding the following line in the file:
+#
+#          /mnt/sharedfolder clientIP(rw,sync,no_subtree_check)"
+#echo ' '
+#echo "    Multiple clients, by specifying an entire subnet that the clients belong to:
+#
+#          /mnt/sharedfolder subnetIP/24(rw,sync,no_subtree_check)"
+exit 0
+
+--------------------------------------
+nfs-pv.yml
+--------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv 
+spec:
+  capacity:
+    storage: 1Gi 
+  accessModes:
+    - ReadWriteMany 
+  persistentVolumeReclaimPolicy: Retain 
+  nfs: 
+    path: /mnt/appdata
+    server: <PLACE-NFS-SERVER-IP-HERE>
+    readOnly: false
+	
+--------------------------------------
+nfs-pvc.yml
+--------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc  
+spec:
+  storageClassName: manual
+  accessModes:
+  - ReadWriteMany      
+  resources:
+     requests:
+       storage: 1Gi
+	 
+--------------------------------------
+deployment.yml
+--------------------------------------	 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-pv-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web 
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: web
+    spec:
+      containers:
+      - image: nginx
+        name: website
+        volumeMounts: 
+         - name: nfs-vol
+           mountPath: /usr/share/nginx/html
+      volumes:
+         - name: nfs-vol
+           persistentVolumeClaim:
+              claimName: nfs-pvc
+			  
+			  
+----------------------------------------------------------------------------------------------------------------------------------------
+Google Kubernetes Engine(GKE) cloud disk
+----------------------------------------------------------------------------------------------------------------------------------------
+createing storage class
+--------------------------------------
+gcp-sc-gcepdssd.yml
+--------------------------------------	
+			  
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+  
+kubectl create -f gcp-sc-gcepdssd.yml 
+kubectl get sc
+
+createing pvc for storage class created above
+--------------------------------------
+gcepd-ssd-pvc.yml
+--------------------------------------	
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sc-pvc 
+spec:
+  storageClassName: fast
+  resources:
+    requests:
+      storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+
+	

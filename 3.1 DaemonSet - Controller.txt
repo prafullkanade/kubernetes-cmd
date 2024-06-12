@@ -1,0 +1,36 @@
+DaemonSet
+
+it create replica on every node (e.g splunk logging pod on every node) 
+
+kubectl get daemonset
+kubectl get ds
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mydaemonset
+  labels:
+     app: test
+     env: prod
+spec:
+  selector:
+     matchLabels:
+       app: test
+  template:
+     metadata:
+      name: mydaemonsetpod
+      labels:
+        app: test
+     spec:
+       containers:
+        - name: mydaemonsetcont
+          image: lerndevops/tomcat:8.5.47
+          ports:
+           - containerPort: 8080
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi

@@ -1,0 +1,107 @@
+ConfigMaps
+
+Configuration Mapping
+
+kubectl create configmap <map-name> <data-source>
+#create config maps from cli itself 
+kubectl create configmap <config-name> --from-literal=APP_COLOR=BLUE --from-literal=special.type=charm
+#create config maps from file store on location file will have key=value pair  
+kubectl create configmap <config-name> --from-file=path/app_config.properties 
+kubectl get cm
+
+----------------------------------------------------------------------------------------------------------------------------------------
+ConfigMap Using EnvVariable
+----------------------------------------------------------------------------------------------------------------------------------------
+
+configmap-multikeys.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: special-config
+  namespace: default
+data:
+  SPECIAL_LEVEL: very
+  SPECIAL_TYPE: charm
+  
+kubectl create -f configmap-multikeys.yaml
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+kubectl get configmap
+kubectl describe configmaps app_config
+
+----------------------------------------------------------------------------------------------------------------------------------------
+configmap in pods
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels: 
+     app: myapp
+	 type: front-end
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+  envFrom:
+	- configMapRef:
+		name: special-config  # this name i same as configmap created above 
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+kubectl create cm webapp-config-map --from-literal=APP_COLOR=darkblue
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels: 
+     app: myapp
+	 type: front-end
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+      env:
+        - name: SPECIAL_LEVEL_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: myapp-config-map
+              key: APP_COLOR
+  restartPolicy: Never
+  
+----------------------------------------------------------------------------------------------------------------------------------------
+ConfigMap Using Volume 
+----------------------------------------------------------------------------------------------------------------------------------------
+
+  
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-html
+data:
+  index.html: |
+      <H1> Hello ConfigMap </H1>
+---
+kind: Pod 
+apiVersion: v1 
+metadata:
+  name: cm-pod-ex1 
+spec:
+  containers:
+    - name: cm-pod-cont
+      image: nginx
+      ports:
+        - containerPort: 80
+      ## to use ConfigMap as files in a volume
+      volumeMounts:
+         - name: html-from-cm
+           mountPath: /usr/share/nginx/html/
+           readOnly: true
+  volumes:
+   - name: html-from-cm
+     configMap:
+       name: dev-html 

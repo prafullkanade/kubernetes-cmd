@@ -1,0 +1,18 @@
+Drain a Node
+
+for some maintainance we have to drain node
+if we have created pod it will be evicted if we created deployment it will be migratated to some other node
+
+
+kubectl get nodes
+kubectl drain node <node-name>
+kubectl drain node <node-name> --force --ignore-daemonsets 
+kubectl uncordon <node name>  #this will remove the 
+kubectl get pods
+
+drain (NoSchedule) all the living pods will be removed.
+cordon (NoExecute) pods which are running will keep on running no new pods will be assign to this pod.
+
+
+
+

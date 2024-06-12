@@ -1,0 +1,65 @@
+Observability
+
+Liveness, Readiness and Startup Probes
+
+some database server and web server (jenkins) take time to ready but some pod shows ready to serve.
+we can set test to check app is ready
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Readiness
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+     app: nginx
+spec:
+  containers:
+  - name: nginx 
+    image: nginx
+    ports:
+     - containerPort: 80
+  readinessProbe: 
+	httpGet:
+	  path: /api/ready
+	  port: 80	
+----------------------------------------------------------------------------------------------------------------------------------------
+
+  readinessProbe: 
+	tcpSocket:
+	  port: 3306	
+----------------------------------------------------------------------------------------------------------------------------------------
+
+  readinessProbe: 
+	exec:
+	  command:
+		- cat:
+		- /app/is_ready	
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+	initialDelaySeconds: 10
+	periodSeconds: 5
+	failureThreshold: 8	
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Logging	
+
+
+kubectl logs -f <pod-name>
+kubectl logs -f <pod-name> <container-name>
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Monitoring
+
+Metrics Server
+
+kubelet
+cadvisor
+
+other than minikube use below command 
+
+kubectl top node
+kubectl top pod

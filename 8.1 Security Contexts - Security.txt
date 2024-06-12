@@ -1,0 +1,42 @@
+Security Contexts
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+adding security Context at pod level
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-pod
+  labels:
+    app: ubuntu
+spec:
+  securityContext:
+	runAsUser: 1000
+  containers:
+	- name: ubuntu
+	  image: ubuntu
+	  command:
+		- "sleep"
+		- "3600"
+		
+----------------------------------------------------------------------------------------------------------------------------------------
+adding security Context at container level
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-pod
+  labels:
+    app: ubuntu
+spec:
+  containers:
+	- name: ubuntu
+	  image: ubuntu
+	  command:
+		- "sleep"
+		- "3600"
+	  securityContext:
+		runAsUser: 1000
+		capabilities:
+			add: ["MAC_ADMIN"]

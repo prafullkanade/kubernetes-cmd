@@ -1,0 +1,75 @@
+Node Selectors Logging
+
+1st we need to label node to use node selector on the basis of labels we can use node selector.
+kubectl label nodes <node-name> <label=key>=<label=value>
+kubectl label nodes node01 size=Large  
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+     app: nginx
+spec:
+  containers:
+  - name: nginx 
+    image: nginx
+    ports:
+     - containerPort: 80
+  nodeSelector:
+	size: Large
+----------------------------------------------------------------------------------------------------------------------------------------
+Node Selectors has limitation it can use only single lable to select node 	
+we can not use advance expression like NOT, OR 
+
+
+Placement
+
+----------------------------------------------------------------------------------------------------------------------------------------
+Pod will be placed specific node by nodeName
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeserve
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubeserve
+  template:
+    metadata:
+      name: kubeserve
+      labels:
+        app: kubeserve
+    spec:
+      nodeName: anode02
+      containers:
+      - image: leaddevops/kubeserve:v1
+        name: app
+			
+----------------------------------------------------------------------------------------------------------------------------------------		
+Pod will be placed specific node by Node Lable	
+----------------------------------------------------------------------------------------------------------------------------------------	.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeserve
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubeserve
+  template:
+    metadata:
+      name: kubeserve
+      labels:
+        app: kubeserve
+    spec:
+      nodeSelector: 
+         color: "red"
+      containers:
+      - image: leaddevops/kubeserve:v1
+        name: app
+	

@@ -1,0 +1,96 @@
+Taints and Tolerations
+
+
+
+Taints on nodes
+Taints effects: NoSchedule, PreferNoSchedule, NoExecute (old pods also evicted) 
+
+kubectl taint --help
+kubectl taint nodes node1 key1=value1:taint-effect
+
+kubectl taint nodes node1 app=blue:NoSchedule
+
+to remove taint use - at end of command 
+kubectl taint nodes node1 app=blue:NoSchedule-
+
+tains is set on Master automatically when install to see
+kubectl describe node kubemaster | grep Taint
+ 
+
+----------------------------------------------------------------------------------------------------------------------------------------
+Tolerations on pods
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod2
+  labels:
+     app: nginx
+spec:
+  containers:
+  - name: nginx 
+    image: nginx
+    ports:
+     - containerPort: 80
+  tolleration:
+  - key: "app"
+	operator: "Equal"
+	value: "blue"
+	effect: "NoSchedule"
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeserve1
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: kubeserve
+  template:
+    metadata:
+      name: kubeserve
+      labels:
+        app: kubeserve
+    spec:
+      tolerations:
+        - key: color
+          operator: "Equal"
+          value: "red"
+          effect: "NoSchedule"
+      containers:
+      - image: leaddevops/kubeserve:v1
+        name: app
+
+
+
+
+
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: nginx
+#spec:
+#  containers:
+#  - name: nginx
+#    image: nginx
+#    ports:
+#      - containerPort: 80
+#  tolerations:
+#  - key: env
+#    operator: "Exists"
+#    effect: "NoExecute"
+#   - key: person
+#     operator: "Equal"
+#     value: police 
+#     effect: "NoSchedule"
+
+
+#    operator: "Exists"/"Equal"
+#    effect: "NoSchedule"/"PreferNoSchedule"/"NoExecute"
+
+----------------------------------------------------------------------------------------------------------------------------------------
